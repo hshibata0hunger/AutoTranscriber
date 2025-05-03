@@ -1,0 +1,26 @@
+{
+  "name": "AutoTranscriber Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+    // "platform": "linux/arm64"
+  },
+  "containerEnv": {
+    "PYTHONPATH": "/workspaces/AutoTranscriber/src"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.analysis.typeCheckingMode": "basic"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "python -V",
+  "remoteUser": "vscode"
+}

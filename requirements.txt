@@ -1,0 +1,9 @@
+--extra-index-url https://PySimpleGUI.net/install
+openai-whisper
+ffmpeg-python
+tkinterdnd2
+Pillow
+pyinstaller     # コンテナでも lint 用に入れておく
+pytest
+tqdm
+pycurl
