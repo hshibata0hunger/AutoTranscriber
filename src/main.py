@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from transcriber import transcribe_cli
+from .transcriber import transcribe_cli
 
 
 def parse_args() -> argparse.Namespace:
