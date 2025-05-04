@@ -1,4 +1,4 @@
---extra-index-url https://PySimpleGUI.net/install
+tkeasyGUI
 openai-whisper
 ffmpeg-python
 tkinterdnd2

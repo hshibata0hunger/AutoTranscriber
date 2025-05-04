@@ -13,7 +13,7 @@ a = Analysis(
         (os.path.join(project_root, 'packaging', 'ffmpeg', 'ffmpeg'), 'packaging/ffmpeg'),
         # 必要に応じて他のデータファイルを追加
     ],
-    hiddenimports=['whisper', 'PySimpleGUI'],
+    hiddenimports=["tkinter", "tkinterdnd2", "PIL", "tqdm", "whisper", "torch"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

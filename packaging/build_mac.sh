@@ -29,10 +29,21 @@ fi
 
 # ── 2) PyInstaller venv ─────────────────────────────────────
 if [ ! -x "$PY_BUILD_VENV/bin/pyinstaller" ]; then
-  python${PY_VER} -m venv "$PY_BUILD_VENV"
-  "$PY_BUILD_VENV/bin/pip" install --quiet --upgrade pip wheel setuptools pyinstaller
+  PY_BIN="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
+  $PY_BIN -m venv "$PY_BUILD_VENV"
+  "$PY_BUILD_VENV/bin/pip" install --quiet --upgrade pip wheel setuptools pyinstaller tkeasyGUI
+  # pysimplegui --extra-index-url https://PySimpleGUI.net/install
 fi
 PYI="$PY_BUILD_VENV/bin/pyinstaller"
+
+# tkinter動作チェック
+# "$PY_BUILD_VENV/bin/python" - <<'PY'
+# try:
+#     import tkinter, sys
+#     print("✓ tkinter OK:", sys.version)
+# except Exception as e:
+#     raise SystemExit("✖ tkinter not available in this Python: %s" % e)
+# PY
 
 # ── 3) 依存をインストール ─────────────────────────────────────
 "$PY_BUILD_VENV/bin/pip" install --quiet \

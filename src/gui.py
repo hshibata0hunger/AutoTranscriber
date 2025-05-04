@@ -2,9 +2,8 @@ from __future__ import annotations
 import threading
 import queue
 import os
-import PySimpleGUI as sg
 
-from transcriber import transcribe
+from src.transcriber import transcribe
 from pathlib import Path
 
 # GUI でメインスレッドとやり取りするメッセージキュー
@@ -20,66 +19,79 @@ def _worker(video: Path, out_dir: Path, model: str):
 
 
 def run_gui(default_model: str = "base") -> None:
-    sg.theme("DarkBlue3")
-    progress = sg.ProgressBar(100, orientation="h", size=(40,15), key="-PROG-")
-    input_elem   = sg.Input("", key="-IN-", enable_events=True)
-    browse_btn   = sg.FileBrowse(file_types=(("Movie", "*.mp4 *.mov *.mkv"),))
+    import tkeasyGUI as teg
     
-    layout = [
-        [sg.Text("動画をドロップ or 参照")],
-        [input_elem, browse_btn],
-        [sg.Text("出力先フォルダ"), sg.Input("", key="-OUT-"), sg.FolderBrowse()],
-        [sg.Text("モデル"), sg.Combo(("tiny", "base", "small", "medium",
-                                   "large"), default_value=default_model, key="-MODEL-")],
-        [progress],
-        [sg.Button("実行", key="-RUN-"), sg.Exit("終了")],
-    ]
-    win = sg.Window("AutoTranscriber", layout, finalize=True)
-    # win["-IN-"].Widget.drop_target_register("*")  # macOS でも D&D OK
-    tk_widget = cast(tk.Widget, input_elem.Widget)   # type: ignore[attr-defined]
-    tk_widget.drop_target_register("*")              # type: ignore[attr-defined]
-    tk_widget.dnd_bind(
-        "<<Drop>>",
-        lambda e: win.write_event_value("FILE_DROP", e.data)
-    )
+    window = teg.Window("AutoTranscriber", theme="dark")
     
+    # Create widgets
+    window.add_label("動画をドロップ or 参照")
+    input_field = window.add_entry()
+    browse_btn = window.add_file_button("参照", filetypes=[("Movie", "*.mp4 *.mov *.mkv")])
     
-
+    window.add_label("出力先フォルダ")
+    output_field = window.add_entry()
+    output_browse = window.add_folder_button("参照")
+    
+    window.add_label("モデル")
+    model_combo = window.add_combobox(["tiny", "base", "small", "medium", "large"], default=default_model)
+    
+    progress_bar = window.add_progress_bar(length=400)
+    
+    run_btn = window.add_button("実行")
+    exit_btn = window.add_button("終了")
+    
+    # Enable drag and drop
+    input_field.enable_drop()
+    
     running = False
-
-    while True:
-        event, values = win.read(timeout=100)
-        if event in (sg.WIN_CLOSED, "終了"):
-            break
-
-        if event == "-RUN-" and not running:
-            video = Path(values["-IN-"]).expanduser()
-            outd = Path(values["-OUT-"]).expanduser()
-            if not video.is_file() or not outd.is_dir():
-                sg.popup_error("入力または出力先が不正です。")
-                continue
-            running = True
-            progress.update_bar(10)
-            threading.Thread(
-                target=_worker,
-                args=(video, outd, values["-MODEL-"]),
-                daemon=True
-            ).start()
-
-        # ワーカー → メインへの通知
+    
+    def on_drop(data):
+        input_field.set_text(data)
+    
+    def on_run():
+        nonlocal running
+        if running:
+            return
+            
+        video = Path(input_field.get_text()).expanduser()
+        outd = Path(output_field.get_text()).expanduser()
+        
+        if not video.is_file() or not outd.is_dir():
+            teg.show_error("入力または出力先が不正です。")
+            return
+            
+        running = True
+        progress_bar.set(10)
+        
+        threading.Thread(
+            target=_worker,
+            args=(video, outd, model_combo.get_value()),
+            daemon=True
+        ).start()
+    
+    def check_queue():
+        nonlocal running
         try:
             msg, payload = Q.get_nowait()
+            if msg == "SUCCESS":
+                running = False
+                progress_bar.set(100)
+                teg.show_info(f"SRT 生成完了:\n{payload}")
+                os.system(f"open -R '{payload}'")
+                progress_bar.set(0)
+            elif msg == "ERROR":
+                running = False
+                progress_bar.set(0)
+                teg.show_error(f"エラー: {payload}")
         except queue.Empty:
-            continue
-        if msg == "SUCCESS":
-            running = False
-            progress.update_bar(100)
-            sg.popup_ok(f"SRT 生成完了:\n{payload}")
-            os.system(f"open -R '{payload}'")          # Finder でハイライト
-            progress.update_bar(0)
-        elif msg == "ERROR":
-            running = False
-            progress.update_bar(0)
-            sg.popup_error(f"エラー: {payload}")
-
-    win.close()
+            pass
+        finally:
+            if not window.is_closed():
+                window.after(100, check_queue)
+    
+    input_field.on_drop(on_drop)
+    run_btn.on_click(on_run)
+    exit_btn.on_click(window.close)
+    
+    check_queue()
+    window.run()

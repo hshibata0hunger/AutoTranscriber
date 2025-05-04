@@ -19,9 +19,7 @@ COPY --chown=vscode:vscode requirements.txt ./
 # pip (すでにアップグレード済み) で依存関係をインストール
 RUN python3 -m pip install --upgrade pip && pip install setuptools && pip install wheel \
   && python3 -m pip install --no-cache-dir -r requirements.txt \
-  && pip uninstall -y PySimpleGUI \
-  && pip cache purge \
-  && pip install --no-cache-dir --extra-index-url https://PySimpleGUI.net/install PySimpleGUI
+  && pip cache purge
 
 ENV PYTHONUNBUFFERED=1 \
   PIP_NO_CACHE_DIR=1 \
