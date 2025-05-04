@@ -11,6 +11,9 @@ export AUTO_TRANSCRIBER_ROOT="$PROJECT_ROOT"
 
 FFMPEG_BIN="$PROJECT_ROOT/packaging/ffmpeg/ffmpeg"
 
+PY_VER="3.12"
+PY_BIN="$(brew --prefix)/bin/python${PY_VER}"
+
 echo "▶︎ Local macOS build (no codesign / no notarize)"
 echo "Project root: $PROJECT_ROOT"
 echo "---------------------------------------------"
@@ -26,12 +29,17 @@ fi
 
 # ── 2) PyInstaller venv ─────────────────────────────────────
 if [ ! -x "$PY_BUILD_VENV/bin/pyinstaller" ]; then
-  python3 -m venv "$PY_BUILD_VENV"
-  "$PY_BUILD_VENV/bin/pip" install --quiet pyinstaller
+  python${PY_VER} -m venv "$PY_BUILD_VENV"
+  "$PY_BUILD_VENV/bin/pip" install --quiet --upgrade pip wheel setuptools pyinstaller
 fi
 PYI="$PY_BUILD_VENV/bin/pyinstaller"
 
-# ── 3) ビルド実行 ───────────────────────────────────────────
+# ── 3) 依存をインストール ─────────────────────────────────────
+"$PY_BUILD_VENV/bin/pip" install --quiet \
+  torch --extra-index-url https://download.pytorch.org/whl/cpu \
+  openai-whisper tqdm
+
+# ── 4) ビルド実行 ───────────────────────────────────────────
 "$PYI" "$SPEC_FILE" --noconfirm
 
 echo "✅ Build completed → $PROJECT_ROOT/dist/${APP_NAME}.app"

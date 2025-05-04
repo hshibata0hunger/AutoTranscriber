@@ -1,7 +1,7 @@
 from __future__ import annotations
-import time, whisper, os
+import time, whisper
 from pathlib import Path
-from typing import Any, Dict, List, TypedDict, Callable, cast
+from typing import Any, Dict, Callable, cast
 from tqdm import tqdm
 from utils.ffmpeg import extract_audio
 from utils.paths import tmpdir

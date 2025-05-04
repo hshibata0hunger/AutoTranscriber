@@ -1,8 +1,30 @@
-out/*
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.installed.cfg
+
+# venv
+.venv*/
+env/
+ENV/
+
+# PyInstaller build
 build/
 dist/
-.pytest_cache/
-.venv_build/
-tests/
+*.spec
 
-.env
+# ffmpeg binary (ダウンロード式に変更推奨)
+packaging/ffmpeg/ffmpeg
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+warn-*.txt
+error-*.txt

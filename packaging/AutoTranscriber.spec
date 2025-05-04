@@ -3,17 +3,15 @@ import os
 from pathlib import Path
 block_cipher = None
 
-ROOT = Path(os.environ.get(
-    "AUTO_TRANSCRIBER_ROOT",
-    "/Users/hideki_mac/開発/プロジェクト/AutoTranscriber",   # デフォルト
-)).resolve()
+ROOT = Path(os.environ["AUTO_TRANSCRIBER_ROOT"]).resolve()
+SRC = ROOT / "src"
 
 a = Analysis(
-    [str(ROOT / "src" / "main.py")],
-    pathex=[str(ROOT)],
+    [str(SRC / "main.py")],
+    pathex=[str(ROOT), str(SRC)],
     binaries=[(str(ROOT / "packaging" / "ffmpeg" / "ffmpeg"), "ffmpeg")],
     datas=[(str(ROOT / "assets" / "icon.icns"), ".")],
-    hiddenimports=["tkinterdnd2", "PIL"],
+    hiddenimports=["tkinterdnd2", "PIL", "tqdm", "whisper"],
     noarchive=False,
 )
 
