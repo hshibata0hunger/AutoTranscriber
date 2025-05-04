@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from .transcriber import transcribe_cli
+from src.transcriber import transcribe_cli
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,7 +26,7 @@ def main() -> None:
             model_name=args.model,
         )
     else:
-        from .gui import run_gui
+        from src.gui import run_gui
         run_gui(default_model=args.model)
 
 

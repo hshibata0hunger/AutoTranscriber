@@ -2,7 +2,7 @@ from __future__ import annotations
 import subprocess
 import shutil
 from pathlib import Path
-from utils.paths import project_root
+from src.utils.paths import project_root
 
 
 def _find_ffmpeg() -> Path:

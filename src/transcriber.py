@@ -3,8 +3,8 @@ import time, whisper
 from pathlib import Path
 from typing import Any, Dict, Callable, cast
 from tqdm import tqdm
-from utils.ffmpeg import extract_audio
-from utils.paths import tmpdir
+from src.utils.ffmpeg import extract_audio
+from src.utils.paths import tmpdir
 
 
 def _format_ts(sec: float) -> str:
