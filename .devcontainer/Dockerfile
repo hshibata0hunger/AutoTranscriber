@@ -1,26 +1,30 @@
-# arm64 イメージは Apple Silicon 上なら自動選択される
-FROM python:3.11-slim
+# .devcontainer/Dockerfile
+FROM python:3.11-bookworm
 
-ARG DEBIAN_FRONTEND=noninteractive
-
-# OS 依存ライブラリをインストール
+# ---------- system deps (GTK+Flutter runtime) ----------
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  build-essential git ffmpeg tcl tk python3-tk wget curl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+  git unzip xz-utils clang \
+  libgtk-3-0 libglib2.0-0 libnss3 libx11-xcb1 libxcomposite1 \
+  libxcursor1 libxdamage1 libxext6 libxi6 libxrandr2 libxss1 libxtst6 \
+  libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 \
+  libpango-1.0-0 libpangocairo-1.0-0 libasound2 && \
+  rm -rf /var/lib/apt/lists/*
 
-# VS Code の既定ユーザー
-RUN useradd -m vscode
-USER vscode
+# ---------- Flutter SDK ----------
+ENV FLUTTER_ROOT=/opt/flutter
+RUN git clone --depth 1 https://github.com/flutter/flutter.git "$FLUTTER_ROOT" \
+  && "$FLUTTER_ROOT/bin/flutter" config --no-analytics
+ENV PATH="$FLUTTER_ROOT/bin:$FLUTTER_ROOT/bin/cache/dart-sdk/bin:${PATH}"
+
+# ---------- workspace ----------
 WORKDIR /workspace
+COPY .. /workspace
 
-# ローカルの requirements.txt をイメージにコピー
-COPY --chown=vscode:vscode requirements.txt ./
-
-# pip (すでにアップグレード済み) で依存関係をインストール
-RUN python3 -m pip install --upgrade pip && pip install setuptools && pip install wheel \
-  && python3 -m pip install --no-cache-dir -r requirements.txt \
-  && pip cache purge
-
-ENV PYTHONUNBUFFERED=1 \
-  PIP_NO_CACHE_DIR=1 \
-  TK_SILENCE_DEPRECATION=1
+# ---------- Python deps (latest) ----------
+ENV PIP_ROOT_USER_ACTION=ignore
+RUN pip install -U pip && pip install --no-cache-dir -r requirements.txt
+#   && pip install --no-cache-dir \
+#   flet \
+#   openai-whisper \
+#   ffmpeg-python
+# RUN pip install --no-cache-dir torch==2.3.0 --index-url https://download.pytorch.org/whl/cpu

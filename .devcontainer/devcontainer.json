@@ -1,27 +1,21 @@
 {
-  "name": "AutoTranscriber Dev",
+  "name": "AutoTranscriber",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-    // "platform": "linux/arm64"
+    "dockerfile": "Dockerfile",   // パスは .devcontainer からの相対
+    "context": ".."               // ルートディレクトリを送る
   },
-  "containerEnv": {
-    "PYTHONPATH": "/workspaces/AutoTranscriber/src"
-  },
+  "workspaceFolder": "/workspace",
+  "runArgs": [
+    "--init",
+    "-v", "${localWorkspaceFolder}/.venv_build:/workspace/.venv_build:cached"
+  ],
+  "forwardPorts": [8550],
+  "postCreateCommand": "pip install -U pip && pip install -r requirements.txt flet && echo '✅ dev ready'",
   "customizations": {
     "vscode": {
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "python.analysis.typeCheckingMode": "basic"
-      },
       "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-azuretools.vscode-docker",
         "sourcegraph.cody-ai"
       ]
     }
-  },
-  "postCreateCommand": "python -V",
-  "remoteUser": "vscode"
+  }
 }

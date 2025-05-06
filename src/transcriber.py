@@ -1,64 +1,24 @@
-from __future__ import annotations
-import time, whisper
 from pathlib import Path
-from typing import Any, Dict, Callable, cast
-from tqdm import tqdm
-from src.utils.ffmpeg import extract_audio
-from src.utils.paths import tmpdir
+import whisper
+import ffmpeg
 
 
-def _format_ts(sec: float) -> str:
-    h, m = divmod(sec, 3600)
-    m, s = divmod(m,   60)
-    ms = int((s - int(s)) * 1000)
-    return f"{int(h):02d}:{int(m):02d}:{int(s):02d},{ms:03d}"
+def transcribe(video: str | Path, out_dir: str | Path, model="base",
+               progress_cb=lambda v: None) -> Path:
+    video, out_dir = Path(video), Path(out_dir)
+    wav = out_dir / (video.stem + ".wav")
 
-
-def transcribe(
-        video_path: Path, 
-        output_dir: Path, 
-        model_name: str = "base", 
-        progress_cb: Callable[[int, int], None] | None = None
-    ) -> Path:
-    if progress_cb:
-        progress_cb(0, 100)
-    wav = extract_audio(video_path, tmpdir())          # → .wav
-    if progress_cb:
-        progress_cb(10, 100)
-    model = whisper.load_model(model_name)
-    result = model.transcribe(str(wav), language="ja", fp16=False)
-    if progress_cb:
-        progress_cb(90, 100)
-
-    srt_lines: list[str] = []
-    for i, raw in enumerate(result["segments"], 1):
-        seg: Dict[str, Any] = cast(Dict[str, Any], raw)   # 型ヒントを与える
-        start = float(seg["start"])
-        end   = float(seg["end"])
-        text  = str(seg["text"]).strip()
-        srt_lines.append(f"{i}\n{_format_ts(start)} --> {_format_ts(end)}\n{text}\n")
-
-    out_path = output_dir / f"{video_path.stem}.srt"
-    out_path.write_text("\n".join(srt_lines), encoding="utf-8")
-    if progress_cb:
-        progress_cb(100, 100)
-    return out_path
-
-# CLI から直接呼ぶときのラッパー
-# def transcribe_cli(video_path: Path, output_dir: Path, model_name: str) -> None:
-#     out = transcribe(video_path, output_dir, model_name)
-#     print(f"[OK] SRT: {out}")
-
-def transcribe_cli(video_path: Path, output_dir: Path, model_name: str) -> None:
-    bar = tqdm(total=100, desc="Processing", unit="%")
-    start = time.perf_counter()
-
-    def _cb(current: int, total: int) -> None:
-        bar.n = current
-        bar.refresh()
-
-    out = transcribe(video_path, output_dir, model_name, progress_cb=_cb)
-    bar.close()
-
-    elapsed = time.perf_counter() - start
-    print(f"\n✅  Done in {elapsed:,.1f} seconds — SRT: {out}")
+    # 音声抽出
+    if not wav.exists():
+        (ffmpeg
+         .input(str(video))
+         .output(str(wav), ac=1, ar="16k")
+         .overwrite_output()
+         .run(quiet=True))
+    model = whisper.load_model(model)
+    result = model.transcribe(str(wav), language="ja",
+                              progress_callback=lambda p: progress_cb(p*100))
+    srt = out_dir / (video.stem + ".srt")
+    srt.write_text(whisper.utils.write_srt(
+        result["segments"]), encoding="utf-8")
+    return srt

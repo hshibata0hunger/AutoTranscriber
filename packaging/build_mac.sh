@@ -1,56 +1,26 @@
 #!/usr/bin/env bash
 set -eu
+ROOT="$(cd "$(dirname "$0")/.."; pwd)"
+VENV="$ROOT/.venv_build"
+PY="$(brew --prefix)/opt/python@3.12/bin/python3"
+export FLUTTER_ROOT="$(brew --prefix)/opt/flutter"
 
-APP_NAME="AutoTranscriber"
-SPEC_FILE="packaging/AutoTranscriber.spec"
-PY_BUILD_VENV=".venv_build"
-
-# ── 0) プロジェクトルートを環境変数に ─────────────────────────
-PROJECT_ROOT="$(cd "$(dirname "$0")/.."; pwd)"
-export AUTO_TRANSCRIBER_ROOT="$PROJECT_ROOT"
-
-FFMPEG_BIN="$PROJECT_ROOT/packaging/ffmpeg/ffmpeg"
-
-PY_VER="3.12"
-PY_BIN="$(brew --prefix)/bin/python${PY_VER}"
-
-echo "▶︎ Local macOS build (no codesign / no notarize)"
-echo "Project root: $PROJECT_ROOT"
-echo "---------------------------------------------"
-
-# ── 1) ffmpeg を用意 ──────────────────────────────────────────
-if [ ! -x "$FFMPEG_BIN" ]; then
-  echo "⚠️  ffmpeg が無いので取得します..."
-  mkdir -p "$(dirname "$FFMPEG_BIN")"
-  curl -L -o "$FFMPEG_BIN" \
-       https://github.com/yt-dlp/ffmpeg-binaries/releases/latest/download/ffmpeg-mac-arm64
-  chmod +x "$FFMPEG_BIN"
+if [ ! -x "$VENV/bin/python" ]; then
+  "$PY" -m venv "$VENV"
 fi
 
-# ── 2) PyInstaller venv ─────────────────────────────────────
-if [ ! -x "$PY_BUILD_VENV/bin/pyinstaller" ]; then
-  PY_BIN="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
-  $PY_BIN -m venv "$PY_BUILD_VENV"
-  "$PY_BUILD_VENV/bin/pip" install --quiet --upgrade pip wheel setuptools pyinstaller tkeasyGUI
-  # pysimplegui --extra-index-url https://PySimpleGUI.net/install
-fi
-PYI="$PY_BUILD_VENV/bin/pyinstaller"
+"$VENV/bin/pip" install --upgrade pip
+"$VENV/bin/pip" install --upgrade \
+    flet \
+    openai-whisper \
+    "torch==2.3.0+cpu" -f https://download.pytorch.org/whl/cpu \
+    ffmpeg-python
 
-# tkinter動作チェック
-# "$PY_BUILD_VENV/bin/python" - <<'PY'
-# try:
-#     import tkinter, sys
-#     print("✓ tkinter OK:", sys.version)
-# except Exception as e:
-#     raise SystemExit("✖ tkinter not available in this Python: %s" % e)
-# PY
+cd "$ROOT"
+"$VENV/bin/flet" pack src/main.py \
+    --name AutoTranscriber \
+    --icon assets/icon.icns \
+    --output dist \
+    --target-arch arm64
 
-# ── 3) 依存をインストール ─────────────────────────────────────
-"$PY_BUILD_VENV/bin/pip" install --quiet \
-  torch --extra-index-url https://download.pytorch.org/whl/cpu \
-  openai-whisper tqdm
-
-# ── 4) ビルド実行 ───────────────────────────────────────────
-"$PYI" "$SPEC_FILE" --noconfirm
-
-echo "✅ Build completed → $PROJECT_ROOT/dist/${APP_NAME}.app"
+echo "▶ dist/AutoTranscriber.app 完成"
